@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="warm_bg">#FFF8F1</color>
+    <color name="warm_primary">#FF8A5C</color>
+    <color name="warm_primary_strong">#F2703F</color>
+    <color name="warm_text1">#4A3728</color>
+    <string name="app_name">宝宝记录</string>
+    <string name="sc_feed_long">记录宝宝吃奶</string>
+    <string name="sc_feed_short">吃奶</string>
+    <string name="sc_medicine_long">记录宝宝吃药</string>
+    <string name="sc_medicine_short">吃药</string>
+    <string name="sc_poop_long">记录宝宝排便</string>
+    <string name="sc_poop_short">排便</string>
+    <string name="sc_sleep_long">记录宝宝睡觉</string>
+    <string name="sc_sleep_short">睡觉</string>
+    <string name="widget_desc">桌面一键记录吃奶/睡觉/吃药/排便</string>
+    <string name="widget_name">宝宝记录</string>
+    <style name="Theme.BabyClock" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/warm_bg</item>
+        <item name="android:windowBackground">@color/warm_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

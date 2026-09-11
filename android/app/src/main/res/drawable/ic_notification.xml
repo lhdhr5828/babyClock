@@ -1,0 +1,7 @@
+<!-- 状态栏小图标：单色（白）奶瓶剪影。通知小图标只取 alpha 通道由系统着色，故用纯白填充。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M10,2h4v2l1,1v3l1.2,1.6c0.5,0.7 0.8,1.5 0.8,2.4V20a1,1 0,0 1,-1 1h-8a1,1 0,0 1,-1 -1v-6.9c0,-0.9 0.3,-1.7 0.8,-2.4L9,8V5l1,-1V2z"/>
+</vector>

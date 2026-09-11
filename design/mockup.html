@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>babyClock · UI 设计产物（暖色调 / iOS 圆角）</title>
+<style>
+  :root{
+    --bg:#FFF8F1; --elev:#FFFFFF; --sunken:#FBEDE0;
+    --primary:#FF8A5C; --primary-strong:#F2703F; --primary-soft:#FFD9C4;
+    --feed:#FFB74D; --feed-soft:#FFE9C7; --feed-ink:#8A5A12;
+    --sleep:#F2A6A0; --sleep-soft:#FBE0DD; --sleep-ink:#8E423C;
+    --med:#FF8A80; --med-soft:#FFDDD9; --med-ink:#96322B;
+    --poop:#C9A227; --poop-soft:#F2EBCB; --poop-ink:#6B5410;
+    --t1:#4A3728; --t2:#8C7362; --t3:#B79E8C;
+    --hair:#F0E0D2; --div:#F6E9DD;
+    --card-shadow:0 6px 20px rgba(199,141,99,.14);
+    --btn-shadow:0 4px 14px rgba(242,112,63,.28);
+    --r-card:24px; --r-btn:20px;
+    --font:-apple-system,"SF Pro Rounded","PingFang SC","Noto Sans SC",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);background:linear-gradient(160deg,#FFF3E6,#FBE7DA 60%,#F7E0D2);color:var(--t1);padding:40px 24px 80px;line-height:1.5}
+  h1{font-size:28px;font-weight:800;letter-spacing:-.5px}
+  .lede{color:var(--t2);margin:6px 0 28px;font-size:15px}
+  .board{display:flex;flex-wrap:wrap;gap:36px;justify-content:center;align-items:flex-start}
+  .col{display:flex;flex-direction:column;gap:14px;align-items:center}
+  .col-label{font-size:13px;font-weight:700;color:var(--t2);letter-spacing:.4px}
+  /* phone frame */
+  .phone{width:340px;height:700px;background:var(--bg);border-radius:46px;padding:14px;box-shadow:0 24px 60px rgba(120,80,50,.22),0 0 0 11px #2b2b2b,0 0 0 12px #4a4a4a;position:relative;overflow:hidden}
+  .screen{width:100%;height:100%;border-radius:34px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column;position:relative}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:130px;height:26px;background:#2b2b2b;border-radius:0 0 18px 18px;z-index:30}
+  .statusbar{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:13px;font-weight:600;color:var(--t1);flex:0 0 auto}
+  .content{flex:1;overflow-y:auto;padding:6px 20px 12px}
+  .content::-webkit-scrollbar{width:0}
+  /* status card */
+  .status-card{background:linear-gradient(135deg,var(--primary),var(--primary-strong));border-radius:var(--r-card);padding:20px;color:#fff;box-shadow:var(--btn-shadow)}
+  .status-card .sc-top{display:flex;align-items:center;gap:10px;font-size:13px;opacity:.92}
+  .dot{width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.3);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .timer{font-size:40px;font-weight:800;letter-spacing:.5px;font-variant-numeric:tabular-nums;margin:6px 0 2px}
+  .sc-sub{font-size:13px;opacity:.92}
+  .chips{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .chip{background:rgba(255,255,255,.18);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600;backdrop-filter:blur(4px)}
+  .empty-state{text-align:center;color:var(--t2);padding:10px}
+  /* section title */
+  .sec-title{font-size:14px;font-weight:700;color:var(--t2);margin:20px 2px 10px;display:flex;justify-content:space-between;align-items:center}
+  /* big buttons grid */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .rec-btn{background:var(--elev);border:none;border-radius:var(--r-btn);padding:18px 14px;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:var(--card-shadow);cursor:pointer;transition:transform .12s ease-out;font-family:var(--font)}
+  .rec-btn:active{transform:scale(.96)}
+  .squircle{width:58px;height:58px;border-radius:22%;display:flex;align-items:center;justify-content:center}
+  .rec-btn .lbl{font-size:15px;font-weight:700;color:var(--t1)}
+  .rec-btn .meta{font-size:11px;color:var(--t3);font-weight:600}
+  .sq-feed{background:var(--feed-soft)} .sq-sleep{background:var(--sleep-soft)} .sq-med{background:var(--med-soft)} .sq-poop{background:var(--poop-soft)}
+  /* tab bar */
+  .tabbar{flex:0 0 auto;height:62px;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-top:1px solid var(--div);display:flex;justify-content:space-around;align-items:center;padding-bottom:6px}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--t3);cursor:pointer}
+  .tab.active{color:var(--primary-strong)}
+  /* timeline */
+  .day-head{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 14px}
+  .day-head .d{font-size:18px;font-weight:800}
+  .day-nav{display:flex;gap:6px}
+  .nav-pill{background:var(--elev);border:1px solid var(--hair);border-radius:999px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--t2);font-weight:700;box-shadow:var(--card-shadow)}
+  .tl{position:relative;padding-left:26px}
+  .tl:before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:var(--div)}
+  .tl-item{position:relative;margin-bottom:14px}
+  .tl-item:before{content:"";position:absolute;left:-21px;top:8px;width:12px;height:12px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 3px var(--bg)}
+  .tl-card{background:var(--elev);border-radius:16px;padding:12px 14px;box-shadow:var(--card-shadow);display:flex;align-items:center;gap:12px}
+  .mini-sq{width:40px;height:40px;border-radius:22%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .tl-card .t-main{font-size:14px;font-weight:700}
+  .tl-card .t-sub{font-size:12px;color:var(--t2)}
+  .tl-card .t-right{margin-left:auto;text-align:right;font-size:12px;color:var(--t2);font-variant-numeric:tabular-nums}
+  .dur-badge{background:var(--primary-soft);color:var(--primary-strong);border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800}
+  /* stats */
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .stat-card{background:var(--elev);border-radius:18px;padding:16px;box-shadow:var(--card-shadow)}
+  .stat-card .v{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+  .stat-card .k{font-size:12px;color:var(--t2);font-weight:600;margin-top:2px}
+  .seg{display:flex;background:var(--sunken);border-radius:999px;padding:4px;margin:4px 2px 16px}
+  .seg div{flex:1;text-align:center;padding:7px;border-radius:999px;font-size:13px;font-weight:700;color:var(--t2)}
+  .seg .on{background:var(--elev);color:var(--primary-strong);box-shadow:var(--card-shadow)}
+  .bars{display:flex;align-items:flex-end;gap:8px;height:120px;background:var(--elev);border-radius:18px;padding:16px;box-shadow:var(--card-shadow)}
+  .bar{flex:1;border-radius:8px 8px 4px 4px;background:linear-gradient(180deg,var(--sleep),var(--sleep-soft));position:relative}
+  .bar span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:10px;color:var(--t3)}
+  /* widgets */
+  .lockscreen{width:340px;height:700px;border-radius:46px;overflow:hidden;position:relative;box-shadow:0 24px 60px rgba(60,40,30,.35),0 0 0 11px #232323;background:linear-gradient(160deg,#5b4636,#3a2c22)}
+  .ls-bg{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 0%,rgba(255,180,120,.35),transparent 60%),linear-gradient(160deg,#6b5240,#2f241c)}
+  .ls-time{color:#fff;text-align:center;margin-top:70px;font-weight:300}
+  .ls-time .h{font-size:64px;letter-spacing:1px}
+  .ls-time .d{font-size:15px;opacity:.85}
+  .ls-widget{position:absolute;left:20px;right:20px;bottom:120px}
+  .widget{background:rgba(255,248,241,.16);backdrop-filter:blur(20px);border-radius:24px;padding:16px;border:1px solid rgba(255,255,255,.18)}
+  .w-status{color:#fff;display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:12px}
+  .w-status b{font-size:15px}
+  .w-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .w-btn{background:rgba(255,255,255,.92);border-radius:16px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--t1);font-size:11px;font-weight:700}
+  .home-widget{width:300px;background:var(--elev);border-radius:26px;padding:16px;box-shadow:0 14px 34px rgba(120,80,50,.2)}
+  .hw-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--t2);margin-bottom:10px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:26px;font-size:12px;color:var(--t2)}
+  .legend i{width:14px;height:14px;border-radius:22%;display:inline-block;vertical-align:-2px;margin-right:5px}
+  svg{display:block}
+</style>
+</head>
+<body>
+  <h1>babyClock · UI 设计产物</h1>
+  <p class="lede">暖色调 · iOS squircle 圆角图标 · 简洁明了。下方为高保真静态原型（首页一键记录 / 时间轴 / 统计 / 锁屏小组件 / 桌面小组件）。配色与尺寸见 <code>design-tokens.json</code>。</p>
+
+  <div class="board">
+
+    <!-- ============ 首页 ============ -->
+    <div class="col">
+      <div class="col-label">① 首页 · 一键快速记录（P0）</div>
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="statusbar"><span>9:41</span><span>● ▮▮▮ ⌁</span></div>
+        <div class="content">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:2px 2px 14px">
+            <div>
+              <div style="font-size:13px;color:var(--t2);font-weight:600">早上好 ☀️</div>
+              <div style="font-size:22px;font-weight:800">小宝</div>
+            </div>
+            <div class="squircle" style="width:44px;height:44px;background:var(--primary-soft)">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" fill="#F2703F"/><path d="M5 19c0-3.3 3.1-5.2 7-5.2s7 1.9 7 5.2" stroke="#F2703F" stroke-width="2.2" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+
+          <!-- current status card -->
+          <div class="status-card">
+            <div class="sc-top"><span class="dot"></span> 正在进行 · 睡觉</div>
+            <div class="timer" id="homeTimer">00:42:18</div>
+            <div class="sc-sub">开始于 09:00 · 点击"睡觉"可结束</div>
+            <div class="chips">
+              <span class="chip">🍼 吃奶 25 分钟前</span>
+              <span class="chip">💊 吃药 2 小时前</span>
+              <span class="chip">🧷 排便 1 小时前</span>
+            </div>
+          </div>
+
+          <div class="sec-title">轻点记录 <span style="font-weight:600;color:var(--t3);font-size:12px">以"现在"为时刻</span></div>
+          <div class="grid2">
+            <button class="rec-btn"><div class="squircle sq-feed">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M10 3h4v2l1 1v3l1.2 1.6c.5.7.8 1.5.8 2.4V20a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-6.9c0-.9.3-1.7.8-2.4L9 9V6l1-1V3z" fill="#FFB74D"/><path d="M9.5 13h5" stroke="#8A5A12" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div><div class="lbl">吃奶</div><div class="meta">时间段</div></button>
+
+            <button class="rec-btn"><div class="squircle sq-sleep">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="#F2A6A0"/><circle cx="17" cy="6" r="1.3" fill="#8E423C"/><circle cx="20" cy="9" r="1" fill="#8E423C"/></svg>
+            </div><div class="lbl">睡觉</div><div class="meta">进行中</div></button>
+
+            <button class="rec-btn"><div class="squircle sq-med">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><rect x="8.5" y="2.5" width="7" height="4" rx="1.4" fill="#FF8A80"/><path d="M9 6.5h6v3l1.4 2.2c.5.8.8 1.7.8 2.6V19a2.5 2.5 0 0 1-2.5 2.5h-5.4A2.5 2.5 0 0 1 6.8 19v-4.7c0-.9.3-1.8.8-2.6L9 9.5v-3z" fill="#FF8A80"/><path d="M7.5 14h9" stroke="#96322B" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div><div class="lbl">吃药</div><div class="meta">瞬时</div></button>
+
+            <button class="rec-btn"><div class="squircle sq-poop">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M4 11c0-1 .8-1.8 1.8-1.8h12.4A1.8 1.8 0 0 1 20 11c0 3.3-3.6 7-8 7s-8-3.7-8-7z" fill="#C9A227"/><path d="M4.5 11h15" stroke="#6B5410" stroke-width="1.4" stroke-linecap="round"/><circle cx="9" cy="7" r="1.2" fill="#C9A227"/><circle cx="14" cy="6.4" r="1.2" fill="#C9A227"/></svg>
+            </div><div class="lbl">排便</div><div class="meta">瞬时</div></button>
+          </div>
+
+          <div class="sec-title">今天时间轴 <span style="color:var(--primary-strong);font-weight:700;font-size:12px">查看全部 ›</span></div>
+          <div class="tl-card" style="margin-bottom:8px"><div class="mini-sq sq-feed"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M10 3h4v2l1 1v3l1.2 1.6c.5.7.8 1.5.8 2.4V20a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-6.9c0-.9.3-1.7.8-2.4L9 9V6l1-1V3z" fill="#FFB74D"/></svg></div><div><div class="t-main">吃奶</div><div class="t-sub">08:35 – 08:50</div></div><div class="t-right"><span class="dur-badge">15 分钟</span></div></div>
+          <div class="tl-card"><div class="mini-sq sq-poop"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 11c0-1 .8-1.8 1.8-1.8h12.4A1.8 1.8 0 0 1 20 11c0 3.3-3.6 7-8 7s-8-3.7-8-7z" fill="#C9A227"/></svg></div><div><div class="t-main">排便</div><div class="t-sub">08:52</div></div><div class="t-right">瞬时</div></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" fill="currentColor"/></svg>记录</div>
+          <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="3" stroke="currentColor" stroke-width="2"/><path d="M4 9h16M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>时间轴</div>
+          <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 20V10M12 20V4M19 20v-7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>统计</div>
+          <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>设置</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ============ 时间轴 ============ -->
+    <div class="col">
+      <div class="col-label">② 时间轴 · 按天回看与编辑（P0）</div>
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="statusbar"><span>9:41</span><span>● ▮▮▮ ⌁</span></div>
+        <div class="content">
+          <div class="day-head">
+            <div><div class="d">今天</div><div style="font-size:12px;color:var(--t2);font-weight:600">2026年9月10日 · 周四</div></div>
+            <div class="day-nav"><div class="nav-pill">‹</div><div class="nav-pill">›</div></div>
+          </div>
+          <div class="seg" style="margin-bottom:14px"><div>时间轴</div><div class="on">日汇总</div></div>
+
+          <div class="tl">
+            <div class="tl-item"><div class="tl-card"><div class="mini-sq sq-sleep"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="#F2A6A0"/></svg></div><div><div class="t-main">睡觉 · 进行中</div><div class="t-sub">09:00 开始</div></div><div class="t-right"><span class="dur-badge">42 分钟</span></div></div></div>
+            <div class="tl-item" style="--primary:var(--med)"><div class="tl-card"><div class="mini-sq sq-med"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M9 6.5h6v3l1.4 2.2c.5.8.8 1.7.8 2.6V19a2.5 2.5 0 0 1-2.5 2.5h-5.4A2.5 2.5 0 0 1 6.8 19v-4.7c0-.9.3-1.8.8-2.6L9 9.5v-3z" fill="#FF8A80"/></svg></div><div><div class="t-main">吃药 · 维生素D</div><div class="t-sub">07:58</div></div><div class="t-right">瞬时</div></div></div>
+            <div class="tl-item"><div class="tl-card"><div class="mini-sq sq-feed"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M10 3h4v2l1 1v3l1.2 1.6c.5.7.8 1.5.8 2.4V20a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-6.9c0-.9.3-1.7.8-2.4L9 9V6l1-1V3z" fill="#FFB74D"/></svg></div><div><div class="t-main">吃奶 · 左侧</div><div class="t-sub">06:30 – 06:48</div></div><div class="t-right"><span class="dur-badge">18 分钟</span></div></div></div>
+            <div class="tl-item"><div class="tl-card"><div class="mini-sq sq-poop"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 11c0-1 .8-1.8 1.8-1.8h12.4A1.8 1.8 0 0 1 20 11c0 3.3-3.6 7-8 7s-8-3.7-8-7z" fill="#C9A227"/></svg></div><div><div class="t-main">排便</div><div class="t-sub">06:50</div></div><div class="t-right">瞬时</div></div></div>
+            <div class="tl-item"><div class="tl-card"><div class="mini-sq sq-sleep"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="#F2A6A0"/></svg></div><div><div class="t-main">睡觉</div><div class="t-sub">03:10 – 06:28</div></div><div class="t-right"><span class="dur-badge">3 小时 18 分</span></div></div></div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" fill="currentColor"/></svg>记录</div>
+          <div class="tab active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="3" stroke="currentColor" stroke-width="2"/><path d="M4 9h16M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>时间轴</div>
+          <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 20V10M12 20V4M19 20v-7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>统计</div>
+          <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>设置</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ============ 统计 ============ -->
+    <div class="col">
+      <div class="col-label">③ 统计 · 今日/近7天（P1）</div>
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="statusbar"><span>9:41</span><span>● ▮▮▮ ⌁</span></div>
+        <div class="content">
+          <div class="d" style="font-size:22px;font-weight:800;margin:4px 2px 12px">统计</div>
+          <div class="seg"><div class="on">今日</div><div>近 7 天</div></div>
+          <div class="stat-grid">
+            <div class="stat-card"><div class="v" style="color:var(--feed-ink)">6 次</div><div class="k">🍼 吃奶 · 共 1 小时 32 分</div></div>
+            <div class="stat-card"><div class="v" style="color:var(--sleep-ink)">9.5 h</div><div class="k">😴 睡觉 · 4 段 · 最长 3h18m</div></div>
+            <div class="stat-card"><div class="v" style="color:var(--med-ink)">2 次</div><div class="k">💊 吃药</div></div>
+            <div class="stat-card"><div class="v" style="color:var(--poop-ink)">5 次</div><div class="k">🧷 排便</div></div>
+          </div>
+          <div class="sec-title">近 7 天睡眠时长</div>
+          <div class="bars">
+            <div class="bar" style="height:55%"><span>四</span></div>
+            <div class="bar" style="height:70%"><span>五</span></div>
+            <div class="bar" style="height:48%"><span>六</span></div>
+            <div class="bar" style="height:82%"><span>日</span></div>
+            <div class="bar" style="height:64%"><span>一</span></div>
+            <div class="bar" style="height:90%"><span>二</span></div>
+            <div class="bar" style="height:73%;background:linear-gradient(180deg,var(--primary),var(--primary-soft))"><span>今</span></div>
+          </div>
+          <div class="sec-title">喂奶间隔</div>
+          <div class="stat-card"><div style="display:flex;justify-content:space-between;font-size:13px;color:var(--t2);font-weight:600"><span>平均间隔</span><b style="color:var(--t1)">2 小时 48 分</b></div>
+          <div style="height:8px;background:var(--sunken);border-radius:99px;margin-top:10px;overflow:hidden"><div style="width:62%;height:100%;background:linear-gradient(90deg,var(--feed),var(--primary))"></div></div>
+          <div style="font-size:11px;color:var(--t3);margin-top:6px">距上次吃奶 25 分钟 · 通常 3 小时内会饿</div></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" fill="currentColor"/></svg>记录</div>
+          <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="3" stroke="currentColor" stroke-width="2"/></svg>时间轴</div>
+          <div class="tab active"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 20V10M12 20V4M19 20v-7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>统计</div>
+          <div class="tab"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>设置</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ============ 锁屏小组件 ============ -->
+    <div class="col">
+      <div class="col-label">④ 锁屏 / 桌面小组件 · 不解锁一键记（P0）</div>
+      <div class="lockscreen">
+        <div class="ls-bg"></div>
+        <div class="ls-time"><div class="d">9月10日 周四</div><div class="h">9:41</div></div>
+        <div class="ls-widget">
+          <div class="widget">
+            <div class="w-status"><span class="dot"></span> 睡觉进行中 · <b id="wTimer">00:42:18</b></div>
+            <div class="w-grid">
+              <div class="w-btn"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M10 3h4v2l1 1v3l1.2 1.6c.5.7.8 1.5.8 2.4V20a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-6.9c0-.9.3-1.7.8-2.4L9 9V6l1-1V3z" fill="#FFB74D"/></svg>吃奶</div>
+              <div class="w-btn"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="#F2A6A0"/></svg>睡觉</div>
+              <div class="w-btn"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M9 6.5h6v3l1.4 2.2c.5.8.8 1.7.8 2.6V19a2.5 2.5 0 0 1-2.5 2.5h-5.4A2.5 2.5 0 0 1 6.8 19v-4.7c0-.9.3-1.8.8-2.6L9 9.5v-3z" fill="#FF8A80"/></svg>吃药</div>
+              <div class="w-btn"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M4 11c0-1 .8-1.8 1.8-1.8h12.4A1.8 1.8 0 0 1 20 11c0 3.3-3.6 7-8 7s-8-3.7-8-7z" fill="#C9A227"/></svg>排便</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="height:18px"></div>
+      <div class="home-widget">
+        <div class="hw-head">🏠 桌面中尺寸小组件
+          <span style="margin-left:auto;font-size:11px;color:var(--t3);font-weight:600">实时状态 + 四键</span>
+        </div>
+        <div style="background:linear-gradient(135deg,var(--primary),var(--primary-strong));border-radius:16px;padding:12px 14px;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div><div style="font-size:12px;opacity:.9">睡觉进行中</div><div style="font-size:22px;font-weight:800;font-variant-numeric:tabular-nums">00:42:18</div></div>
+          <div style="font-size:12px;opacity:.9;text-align:right">距上次吃奶<br><b>25 分钟</b></div>
+        </div>
+        <div class="w-grid" style="grid-template-columns:repeat(4,1fr);gap:8px">
+          <div class="w-btn" style="background:var(--feed-soft);aspect-ratio:1.2"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M10 3h4v2l1 1v3l1.2 1.6c.5.7.8 1.5.8 2.4V20a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-6.9c0-.9.3-1.7.8-2.4L9 9V6l1-1V3z" fill="#FFB74D"/></svg>吃奶</div>
+          <div class="w-btn" style="background:var(--sleep-soft);aspect-ratio:1.2"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="#F2A6A0"/></svg>睡觉</div>
+          <div class="w-btn" style="background:var(--med-soft);aspect-ratio:1.2"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M9 6.5h6v3l1.4 2.2c.5.8.8 1.7.8 2.6V19a2.5 2.5 0 0 1-2.5 2.5h-5.4A2.5 2.5 0 0 1 6.8 19v-4.7c0-.9.3-1.8.8-2.6L9 9.5v-3z" fill="#FF8A80"/></svg>吃药</div>
+          <div class="w-btn" style="background:var(--poop-soft);aspect-ratio:1.2"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M4 11c0-1 .8-1.8 1.8-1.8h12.4A1.8 1.8 0 0 1 20 11c0 3.3-3.6 7-8 7s-8-3.7-8-7z" fill="#C9A227"/></svg>排便</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--feed)"></i>吃奶 · 时间段</span>
+    <span><i style="background:var(--sleep)"></i>睡觉 · 时间段（可被打断）</span>
+    <span><i style="background:var(--med)"></i>吃药 · 瞬时</span>
+    <span><i style="background:var(--poop)"></i>排便 · 瞬时</span>
+    <span><i style="background:var(--primary)"></i>主色 #FF8A5C</span>
+  </div>
+
+<script>
+  // 实时走秒演示
+  let s = 42*60 + 18;
+  function pad(n){return String(n).padStart(2,'0')}
+  function tick(){
+    s++;
+    const h=pad(Math.floor(s/3600)), m=pad(Math.floor(s%3600/60)), sec=pad(s%60);
+    const t=`${h}:${m}:${sec}`;
+    const a=document.getElementById('homeTimer'); if(a)a.textContent=t;
+    const b=document.getElementById('wTimer'); if(b)b.textContent=t;
+  }
+  setInterval(tick,1000);
+</script>
+</body>
+</html>

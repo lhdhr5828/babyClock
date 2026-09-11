@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 离线红线：不声明任何 INTERNET / 网络权限。所有数据仅存于本机 Room(SQLite)。 -->
+
+    <!-- 锁屏常驻通知一键记录（PRD §3.9）所需权限。
+         POST_NOTIFICATIONS：Android 13(API33)+ 运行时申请；
+         FOREGROUND_SERVICE / FOREGROUND_SERVICE_SPECIAL_USE：Android 14(API34)+ 常驻保活。 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <application
+        android:name=".BabyClockApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.BabyClock">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.BabyClock">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- App Shortcuts：系统桌面长按 App 图标弹出的一键记录（非语音入口） -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
+        <!-- 桌面小组件（Android 自 5.0 起已无锁屏小组件） -->
+        <receiver
+            android:name=".widget.BabyClockWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
+        </receiver>
+
+        <!-- 说明：Glance 的 actionRunCallback 写入回调由 Glance 内部接收器处理，无需在此声明 -->
+
+        <!-- 锁屏常驻通知一键记录（PRD §3.9，Android P0）。
+             specialUse 前台服务保证 Android 14+ 通知常驻；subtype 供 Play 上架时说明用途。 -->
+        <service
+            android:name=".notification.RecordNotificationService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="lock_screen_one_tap_baby_event_record" />
+        </service>
+
+        <!-- 通知 action 按钮点击落地：写 Room（来源 NOTIFICATION）+ 刷新通知与小组件，不打开 UI。 -->
+        <receiver
+            android:name=".notification.NotificationActionReceiver"
+            android:exported="false" />
+    </application>
+
+</manifest>

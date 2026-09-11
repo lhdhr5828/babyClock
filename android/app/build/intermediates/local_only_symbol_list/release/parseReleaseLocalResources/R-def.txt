@@ -1,0 +1,29 @@
+R_DEF: Internal format may change without notice
+local
+color warm_bg
+color warm_primary
+color warm_primary_strong
+color warm_text1
+drawable ic_feed
+drawable ic_launcher_background
+drawable ic_launcher_foreground
+drawable ic_medicine
+drawable ic_poop
+drawable ic_sleep
+layout widget_loading
+mipmap ic_launcher
+mipmap ic_launcher_round
+string app_name
+string sc_feed_long
+string sc_feed_short
+string sc_medicine_long
+string sc_medicine_short
+string sc_poop_long
+string sc_poop_short
+string sc_sleep_long
+string sc_sleep_short
+string widget_desc
+string widget_name
+style Theme.BabyClock
+xml shortcuts
+xml widget_info

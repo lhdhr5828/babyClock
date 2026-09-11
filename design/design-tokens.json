@@ -1,0 +1,88 @@
+{
+  "$schema": "babyClock-design-tokens",
+  "version": "1.0",
+  "theme": "warm-light",
+  "color": {
+    "background": {
+      "base": "#FFF8F1",
+      "elevated": "#FFFFFF",
+      "sunken": "#FBEDE0",
+      "night_base": "#2A211C",
+      "night_elevated": "#3A2E27"
+    },
+    "primary": {
+      "default": "#FF8A5C",
+      "strong": "#F2703F",
+      "soft": "#FFD9C4",
+      "onPrimary": "#FFFFFF"
+    },
+    "event": {
+      "feed":    { "fill": "#FFB74D", "soft": "#FFE9C7", "icon": "#8A5A12" },
+      "sleep":   { "fill": "#F2A6A0", "soft": "#FBE0DD", "icon": "#8E423C" },
+      "medicine":{ "fill": "#FF8A80", "soft": "#FFDDD9", "icon": "#96322B" },
+      "poop":    { "fill": "#C9A227", "soft": "#F2EBCB", "icon": "#6B5410" }
+    },
+    "text": {
+      "primary": "#4A3728",
+      "secondary": "#8C7362",
+      "tertiary": "#B79E8C",
+      "inverse": "#FFF8F1"
+    },
+    "semantic": {
+      "success": "#7FB069",
+      "warning": "#E0A458",
+      "danger": "#D9534F"
+    },
+    "border": {
+      "hairline": "#F0E0D2",
+      "divider": "#F6E9DD"
+    }
+  },
+  "radius": {
+    "icon_squircle": "22%",
+    "card": "24px",
+    "button": "20px",
+    "pill": "999px",
+    "sheet": "28px"
+  },
+  "spacing": {
+    "xs": "4px", "sm": "8px", "md": "16px", "lg": "24px", "xl": "32px", "xxl": "48px"
+  },
+  "typography": {
+    "fontFamily": "-apple-system, 'SF Pro Rounded', 'PingFang SC', 'Noto Sans SC', system-ui, sans-serif",
+    "scale": {
+      "display":  { "size": "40px", "weight": 700, "lineHeight": 1.1, "tracking": "-0.5px" },
+      "title":    { "size": "24px", "weight": 700, "lineHeight": 1.25 },
+      "headline": { "size": "18px", "weight": 600, "lineHeight": 1.35 },
+      "body":     { "size": "16px", "weight": 400, "lineHeight": 1.5 },
+      "caption":  { "size": "13px", "weight": 500, "lineHeight": 1.4 },
+      "timer":    { "size": "34px", "weight": 700, "lineHeight": 1.0, "tracking": "0.5px", "fontFeature": "tabular-nums" }
+    }
+  },
+  "shadow": {
+    "card": "0 6px 20px rgba(199, 141, 99, 0.14)",
+    "button": "0 4px 14px rgba(242, 112, 63, 0.28)",
+    "floating": "0 10px 30px rgba(120, 80, 50, 0.18)"
+  },
+  "iconography": {
+    "style": "iOS squircle, filled+soft-duotone, rounded line caps",
+    "grid": "24x24, corner radius 22% for app-icon container",
+    "strokeWidth": "2px",
+    "set": {
+      "feed": "baby bottle",
+      "sleep": "crescent moon / zzz",
+      "medicine": "medicine dropper / pill",
+      "poop": "diaper"
+    }
+  },
+  "motion": {
+    "tapFeedback": "120ms ease-out scale 0.96",
+    "cardRefresh": "220ms ease-in-out",
+    "timerTick": "linear 1s"
+  },
+  "component": {
+    "primaryButton": { "minHeight": "64px", "minTapTarget": "56px" },
+    "homeGrid": { "columns": 2, "gap": "16px" },
+    "statusCard": { "padding": "20px", "radius": "24px" }
+  }
+}

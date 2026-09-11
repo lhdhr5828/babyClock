@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App Shortcuts：桌面长按图标 + 系统语音助手可调用的一键记录。
+     action 命名 com.babyclock.action.RECORD_<TYPE>，由 MainActivity 落地写入（来源 VOICE）。 -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut android:shortcutId="record_sleep" android:enabled="true"
+        android:icon="@drawable/ic_sleep" android:shortcutShortLabel="@string/sc_sleep_short"
+        android:shortcutLongLabel="@string/sc_sleep_long">
+        <intent android:action="com.babyclock.action.RECORD_SLEEP"
+            android:targetPackage="com.babyclock" android:targetClass="com.babyclock.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+        <capability-binding android:key="actions.intent.CREATE" />
+    </shortcut>
+
+    <shortcut android:shortcutId="record_feed" android:enabled="true"
+        android:icon="@drawable/ic_feed" android:shortcutShortLabel="@string/sc_feed_short"
+        android:shortcutLongLabel="@string/sc_feed_long">
+        <intent android:action="com.babyclock.action.RECORD_FEED"
+            android:targetPackage="com.babyclock" android:targetClass="com.babyclock.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <shortcut android:shortcutId="record_medicine" android:enabled="true"
+        android:icon="@drawable/ic_medicine" android:shortcutShortLabel="@string/sc_medicine_short"
+        android:shortcutLongLabel="@string/sc_medicine_long">
+        <intent android:action="com.babyclock.action.RECORD_MEDICINE"
+            android:targetPackage="com.babyclock" android:targetClass="com.babyclock.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <shortcut android:shortcutId="record_poop" android:enabled="true"
+        android:icon="@drawable/ic_poop" android:shortcutShortLabel="@string/sc_poop_short"
+        android:shortcutLongLabel="@string/sc_poop_long">
+        <intent android:action="com.babyclock.action.RECORD_POOP"
+            android:targetPackage="com.babyclock" android:targetClass="com.babyclock.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+</shortcuts>

@@ -1,0 +1,46 @@
+[
+    {
+        "merged": "com.babyclock.app-release-56:/drawable_ic_feed.xml.flat",
+        "source": "com.babyclock.app-main-57:/drawable/ic_feed.xml"
+    },
+    {
+        "merged": "com.babyclock.app-release-56:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.babyclock.app-main-57:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.babyclock.app-release-56:/xml_shortcuts.xml.flat",
+        "source": "com.babyclock.app-main-57:/xml/shortcuts.xml"
+    },
+    {
+        "merged": "com.babyclock.app-release-56:/drawable_ic_poop.xml.flat",
+        "source": "com.babyclock.app-main-57:/drawable/ic_poop.xml"
+    },
+    {
+        "merged": "com.babyclock.app-release-56:/drawable_ic_sleep.xml.flat",
+        "source": "com.babyclock.app-main-57:/drawable/ic_sleep.xml"
+    },
+    {
+        "merged": "com.babyclock.app-release-56:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.babyclock.app-main-57:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.babyclock.app-release-56:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.babyclock.app-main-57:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.babyclock.app-release-56:/drawable_ic_medicine.xml.flat",
+        "source": "com.babyclock.app-main-57:/drawable/ic_medicine.xml"
+    },
+    {
+        "merged": "com.babyclock.app-release-56:/xml_widget_info.xml.flat",
+        "source": "com.babyclock.app-main-57:/xml/widget_info.xml"
+    },
+    {
+        "merged": "com.babyclock.app-release-56:/layout_widget_loading.xml.flat",
+        "source": "com.babyclock.app-main-57:/layout/widget_loading.xml"
+    },
+    {
+        "merged": "com.babyclock.app-release-56:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.babyclock.app-main-57:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    }
+]

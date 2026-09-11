@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.babyclock.EventStateMachineTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-09-11T16:20:21" hostname="DESKTOP-E90VBI7" time="0.035">
+  <properties/>
+  <testcase name="formulaInterruptsBreast" classname="com.babyclock.EventStateMachineTest" time="0.026"/>
+  <testcase name="atMostOneOngoing" classname="com.babyclock.EventStateMachineTest" time="0.001"/>
+  <testcase name="startSleep" classname="com.babyclock.EventStateMachineTest" time="0.0"/>
+  <testcase name="formulaInvariants" classname="com.babyclock.EventStateMachineTest" time="0.0"/>
+  <testcase name="sleepInterruptedByFeed" classname="com.babyclock.EventStateMachineTest" time="0.0"/>
+  <testcase name="splitByDay" classname="com.babyclock.EventStateMachineTest" time="0.001"/>
+  <testcase name="tapSameTypeEnds" classname="com.babyclock.EventStateMachineTest" time="0.0"/>
+  <testcase name="formulaInterruptsSleep" classname="com.babyclock.EventStateMachineTest" time="0.001"/>
+  <testcase name="formulaBasic" classname="com.babyclock.EventStateMachineTest" time="0.0"/>
+  <testcase name="instantDoesNotInterrupt" classname="com.babyclock.EventStateMachineTest" time="0.0"/>
+  <testcase name="mixedSequence" classname="com.babyclock.EventStateMachineTest" time="0.001"/>
+  <testcase name="formulaTwiceIndependent" classname="com.babyclock.EventStateMachineTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
