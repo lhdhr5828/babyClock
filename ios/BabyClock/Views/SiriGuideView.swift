@@ -100,7 +100,7 @@ struct SiriGuideView: View {
         case .auto:
             return "语音指令已为你准备好。锁屏时对 Siri 说出下面任意一句即可记录，App 不会被打开，数据只存在这台设备。"
         case .manual:
-            return "先点下方按钮打开「快捷指令」App，把宝宝时钟的语音指令添加一次；之后锁屏对 Siri 说下面任意一句即可记录。"
+            return "先点下方按钮打开「快捷指令」App，把本 App 的语音指令添加一次；之后锁屏对 Siri 说下面任意一句即可记录。"
         case .unsupported:
             return "当前系统不支持语音记录，你可以改用锁屏小组件一键记录。"
         }

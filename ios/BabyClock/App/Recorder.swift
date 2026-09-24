@@ -34,10 +34,31 @@ final class Recorder: ObservableObject {
         }
     }
 
+    /// 奶粉专用（PRD §3.1 规则 2）：写入零时长 FEED/FORMULA 段并打断进行中段。
+    /// volumeMl 必须为正，非法时状态机抛 invalidVolume → 不落库、仅重载（对齐"面板不选中不写库"）。
+    func submitFormula(volumeMl: Int, source: RecordSource = .app) {
+        do {
+            try machine.submitFormula(now: Date(), volumeMl: volumeMl, source: source)
+            reload()
+        } catch {
+            reload()
+        }
+    }
+
     var ongoing: BabyEvent? { events.first { $0.ongoing } }
 
     func lastOccurrence(of type: EventType) -> Date? {
         events.filter { $0.type == type }.map(\.startAt).max()
+    }
+
+    /// §3.2：最近一次母乳（FEED 且非奶粉；含无 feedMethod 的历史段）。
+    func lastBreast() -> BabyEvent? {
+        events.filter { $0.type == .feed && !$0.isFormula }.max { $0.startAt < $1.startAt }
+    }
+
+    /// §3.2：最近一次奶粉（FEED/FORMULA 零时长段）。
+    func lastFormula() -> BabyEvent? {
+        events.filter { $0.isFormula }.max { $0.startAt < $1.startAt }
     }
 
     func events(on day: Date) -> [BabyEvent] {
@@ -45,6 +66,23 @@ final class Recorder: ObservableObject {
         return events
             .filter { cal.isDate($0.startAt, inSameDayAs: day) }
             .sorted { $0.startAt > $1.startAt }
+    }
+
+    /// 与当天窗口有重叠的事件（含跨天时间段），供 24h 活动带按窗口裁剪绘制。
+    /// 镜像 Android RecorderViewModel.eventsOverlapping。
+    func eventsOverlapping(day: Date, now: Date) -> [BabyEvent] {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: day)
+        let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart)!
+        return events.filter { e in
+            if e.type.isInterval {
+                let effEnd = e.endAt ?? (e.ongoing ? now : e.startAt)
+                return e.startAt < dayEnd && effEnd > dayStart
+            } else {
+                return e.startAt >= dayStart && e.startAt < dayEnd
+            }
+        }
+        .sorted { $0.startAt > $1.startAt }
     }
 
     func delete(_ e: BabyEvent) {

@@ -105,6 +105,7 @@ fun HomeScreen(vm: RecorderViewModel, onOpenTimeline: () -> Unit, initialFormula
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun StatusCard(vm: RecorderViewModel) {
     val o = vm.ongoing
@@ -132,19 +133,36 @@ fun StatusCard(vm: RecorderViewModel) {
             Text("点下方按钮开始记录", color = Color.White.copy(alpha = .9f),
                 style = MaterialTheme.typography.labelSmall)
         }
+        // §3.2 规则5：突出"距上次喂奶"（母乳/奶粉更近的一次），字号高于下方五项；仅客观事实、无判断性文案
+        val lastFeed = listOfNotNull(vm.lastBreast(), vm.lastFormula()).maxByOrNull { it.startAt }
+        if (lastFeed != null) {
+            Spacer(Modifier.height(2.dp))
+            Text(Format.feedHighlight(lastFeed, vm.now), color = Color.White,
+                fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        }
+
         Spacer(Modifier.height(4.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            EventType.values().forEach { t ->
-                vm.lastOccurrence(t)?.let { last ->
-                    Box(Modifier.clip(RoundedCornerShape(50))
-                        .background(Color.White.copy(alpha = .18f))
-                        .padding(horizontal = 10.dp, vertical = 5.dp)) {
-                        Text("${Format.emoji(t)} ${Format.relative(last, vm.now)}",
-                            color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
+        // §3.2 规则3/6：五项"距上次"（母乳带时长、奶粉带毫升），超宽自动换行
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            vm.lastBreast()?.let { StatusChip(Format.breastChip(it, vm.now)) }
+            vm.lastFormula()?.let { StatusChip(Format.formulaChip(it, vm.now)) }
+            listOf(EventType.SLEEP, EventType.MEDICINE, EventType.POOP).forEach { t ->
+                vm.lastOccurrence(t)?.let { StatusChip("${Format.emoji(t)} ${Format.relative(it, vm.now)}") }
             }
         }
+    }
+}
+
+/** 状态卡"距上次"胶囊（§3.2 规则3）。 */
+@Composable
+private fun StatusChip(text: String) {
+    Box(Modifier.clip(RoundedCornerShape(50))
+        .background(Color.White.copy(alpha = .18f))
+        .padding(horizontal = 10.dp, vertical = 5.dp)) {
+        Text(text, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

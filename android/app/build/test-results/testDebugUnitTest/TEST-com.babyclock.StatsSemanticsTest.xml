@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.babyclock.StatsSemanticsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-09-11T16:20:21" hostname="DESKTOP-E90VBI7" time="0.002">
+<testsuite name="com.babyclock.StatsSemanticsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-09-11T17:13:33" hostname="DESKTOP-E90VBI7" time="0.002">
   <properties/>
   <testcase name="lastOccurrenceSpansFeedMethods" classname="com.babyclock.StatsSemanticsTest" time="0.0"/>
   <testcase name="formulaContributesZeroDuration" classname="com.babyclock.StatsSemanticsTest" time="0.001"/>
   <testcase name="volumeMlOnlyOnFormula" classname="com.babyclock.StatsSemanticsTest" time="0.0"/>
   <testcase name="feedCountMergesBreastAndFormula" classname="com.babyclock.StatsSemanticsTest" time="0.0"/>
-  <testcase name="zeroDurationSplitContributesNoTime" classname="com.babyclock.StatsSemanticsTest" time="0.001"/>
+  <testcase name="zeroDurationSplitContributesNoTime" classname="com.babyclock.StatsSemanticsTest" time="0.0"/>
   <testcase name="submitFeedIsBreast" classname="com.babyclock.StatsSemanticsTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

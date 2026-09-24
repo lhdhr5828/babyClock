@@ -61,4 +61,18 @@ object Format {
         }
         else -> clock(e.startAt)
     }
+
+    /** §3.2 规则5：突出"距上次喂奶"（母乳/奶粉更近的一次）。仅陈述客观事实，禁止"该喂奶了/间隔过长"等判断性文案（§3.4 合规红线）。 */
+    fun feedHighlight(e: BabyEvent, now: Long): String {
+        val rel = relative(e.startAt, now)
+        return if (isFormula(e)) "喂奶 · $rel · 奶粉 ${e.volumeMl ?: 0}ml" else "喂奶 · $rel · 母乳"
+    }
+
+    /** §3.2 规则3/6：母乳 chip，带时长。 */
+    fun breastChip(e: BabyEvent, now: Long): String =
+        "母乳 ${duration(e.durationMs(now))} · ${relative(e.startAt, now)}"
+
+    /** §3.2 规则3/6：奶粉 chip，带毫升。 */
+    fun formulaChip(e: BabyEvent, now: Long): String =
+        "奶粉 ${e.volumeMl ?: 0}ml · ${relative(e.startAt, now)}"
 }

@@ -72,6 +72,12 @@ public struct BabyEvent: Codable, Identifiable, Sendable, Equatable {
     /// 是否为奶粉记录（FEED + FORMULA 零时长段）。
     public var isFormula: Bool { type == .feed && feedMethod == .formula }
 
+    /// 记录标题：母乳/奶粉区分显示，其余用类型名（对齐 Android Format.label）。
+    public var label: String {
+        if let fm = feedMethod { return fm == .formula ? "奶粉" : "母乳" }
+        return type.title
+    }
+
     /// 已持续/总时长（进行中则到 now）
     public func duration(now: Date = Date()) -> TimeInterval {
         guard type.isInterval else { return 0 }

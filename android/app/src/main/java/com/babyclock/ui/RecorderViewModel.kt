@@ -52,6 +52,14 @@ class RecorderViewModel : ViewModel() {
     fun lastOccurrence(type: EventType): Long? =
         events.filter { it.type == type }.map { it.startAt }.maxOrNull()
 
+    /** §3.2：最近一次母乳（FEED 且非奶粉；含无 feedMethod 的历史段）。 */
+    fun lastBreast(): BabyEvent? =
+        events.filter { it.type == EventType.FEED && !Format.isFormula(it) }.maxByOrNull { it.startAt }
+
+    /** §3.2：最近一次奶粉（FEED/FORMULA 零时长段）。 */
+    fun lastFormula(): BabyEvent? =
+        events.filter { Format.isFormula(it) }.maxByOrNull { it.startAt }
+
     fun eventsOnDay(dayStart: Long, dayEnd: Long): List<BabyEvent> =
         events.filter { it.startAt in dayStart until dayEnd }.sortedByDescending { it.startAt }
 
