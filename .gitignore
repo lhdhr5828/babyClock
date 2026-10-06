@@ -1,0 +1,20 @@
+# 签名机密 —— 只在本机存在，永不入库。
+# 历史里那份已泄露的密钥已于 2026-10-06 作废并轮换，新密钥同样不得提交。
+keystore.properties
+keystore/
+
+# 机器相关路径（sdk.dir 等）
+local.properties
+
+# 构建产物
+build/
+.gradle/
+DerivedData/
+*.apk
+*.aab
+*.jks
+
+# 编辑器 / 系统
+.DS_Store
+xcuserdata/
+*.xcuserstate
