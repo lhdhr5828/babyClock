@@ -16,6 +16,8 @@ class Converters {
     @TypeConverter fun toFeedMethod(v: String?): FeedMethod? = v?.let { FeedMethod.valueOf(it) }
     @TypeConverter fun fromBreastSide(v: BreastSide?): String? = v?.name
     @TypeConverter fun toBreastSide(v: String?): BreastSide? = v?.let { BreastSide.valueOf(it) }
+    @TypeConverter fun fromDiaperKind(v: DiaperKind?): String? = v?.name
+    @TypeConverter fun toDiaperKind(v: String?): DiaperKind? = v?.let { DiaperKind.valueOf(it) }
 }
 
 @Dao
@@ -36,7 +38,7 @@ interface EventDao {
     fun delete(event: BabyEvent)
 }
 
-@Database(entities = [BabyEvent::class], version = 2, exportSchema = false)
+@Database(entities = [BabyEvent::class], version = 3, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun eventDao(): EventDao
@@ -50,6 +52,22 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE event ADD COLUMN feed_method TEXT")
                 db.execSQL("ALTER TABLE event ADD COLUMN volume_ml INTEGER")
                 db.execSQL("ALTER TABLE event ADD COLUMN breast_side TEXT")
+                // 历史 FEED 段一律回填为 BREAST：v1 只有"记时长"这一种吃奶形态。
+                // 不回填则该行的标题会退回类型名"吃奶"，与 iOS 迁移结果不一致。
+                db.execSQL(
+                    "UPDATE event SET feed_method = 'BREAST' " +
+                        "WHERE type = 'FEED' AND feed_method IS NULL"
+                )
+            }
+        }
+
+        /**
+         * v2→v3：新增 diaper_kind（排便区分小便/大便）。
+         * 只加列、不回填：猜出来的大小便比空着更糟，null 在 UI 上显示为"排便"。
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE event ADD COLUMN diaper_kind TEXT")
             }
         }
 
@@ -59,18 +77,25 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "babyclock.db"
-                ).addMigrations(MIGRATION_1_2).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
             }
     }
 }
 
-/** Room 支撑的 EventStore，供状态机使用（进程内单例）。 */
-class RoomEventStore(private val dao: EventDao) : EventStore {
+/**
+ * Room 支撑的 EventStore，供状态机使用（进程内单例）。
+ * 事务用 [RoomDatabase.runInTransaction]：Room 2.5+ 起可重入，且内部 DAO 调用会并入同一事务。
+ */
+class RoomEventStore(private val db: AppDatabase) : EventStore {
+    private val dao: EventDao get() = db.eventDao()
+
     override fun findOngoing(babyId: String) = dao.findOngoing(babyId)
     override fun insert(event: BabyEvent) = dao.insert(event)
     override fun update(event: BabyEvent) = dao.update(event)
+    override fun delete(event: BabyEvent) = dao.delete(event)
     override fun allEvents(babyId: String) = dao.allEvents(babyId)
-    fun delete(event: BabyEvent) = dao.delete(event)
+    override fun <T> transaction(body: () -> T): T =
+        db.runInTransaction(java.util.concurrent.Callable { body() })
 }
 
 /**
@@ -84,8 +109,7 @@ object EventRepository {
     fun init(context: Context) {
         if (machine == null) synchronized(this) {
             if (machine == null) {
-                val dao = AppDatabase.get(context).eventDao()
-                val s = RoomEventStore(dao)
+                val s = RoomEventStore(AppDatabase.get(context))
                 store = s
                 machine = EventStateMachine(s)
             }
@@ -104,5 +128,10 @@ object EventRepository {
     suspend fun ongoing(): BabyEvent? = withContext(Dispatchers.IO) { m().ongoing() }
     suspend fun allEvents(): List<BabyEvent> = withContext(Dispatchers.IO) { m().allEvents() }
     suspend fun lastOccurrence(type: EventType): Long? = withContext(Dispatchers.IO) { m().lastOccurrence(type) }
-    suspend fun delete(event: BabyEvent): Unit = withContext(Dispatchers.IO) { raw().delete(event) }
+    suspend fun delete(event: BabyEvent): Unit = withContext(Dispatchers.IO) { m().delete(event) }
+    suspend fun update(event: BabyEvent): BabyEvent = withContext(Dispatchers.IO) { m().update(event) }
+    suspend fun setBreastSide(side: BreastSide?, id: String): Unit =
+        withContext(Dispatchers.IO) { m().setBreastSide(side, id) }
+    suspend fun setDiaperKind(kind: DiaperKind?, id: String): Unit =
+        withContext(Dispatchers.IO) { m().setDiaperKind(kind, id) }
 }

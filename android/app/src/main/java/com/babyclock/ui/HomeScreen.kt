@@ -47,11 +47,27 @@ private enum class HomeAction(val label: String, val emoji: String, val type: Ev
 @Composable
 fun HomeScreen(vm: RecorderViewModel, onOpenTimeline: () -> Unit, initialFormula: Boolean = false) {
     var showFormula by remember { mutableStateOf(initialFormula) }
-    val ongoingType = vm.ongoing?.type
+    /** 刚结束的那段母乳 id：非空即等待补填左右侧（§3.1 规则 5，可跳过）。 */
+    var pendingSideId by remember { mutableStateOf<String?>(null) }
+    /** 刚落库的那条排便 id：非空即等待补填小便/大便（同一手法，同样可跳过）。 */
+    var pendingDiaperId by remember { mutableStateOf<String?>(null) }
+    val ongoing = vm.ongoing
+    val ongoingType = ongoing?.type
 
     fun click(a: HomeAction) {
-        if (a == HomeAction.FORMULA) showFormula = true
-        else vm.submit(a.type, RecordSource.APP)
+        if (a == HomeAction.FORMULA) { showFormula = true; return }
+        // 这次点击结束了一段母乳 → 段已落库，随后追问一次左右侧（可跳过，不阻断已完成的记录）
+        if (a == HomeAction.BREAST && ongoingType == EventType.FEED) {
+            vm.submit(a.type, RecordSource.APP)
+            pendingSideId = ongoing?.id
+            return
+        }
+        // 排便先落库再追问"这一次是"：一键仍然记录成功，下滑关面板 = 跳过，字段保持 null 显示"排便"。
+        if (a == HomeAction.POOP) {
+            vm.submit(a.type, RecordSource.APP) { pendingDiaperId = it.id }
+            return
+        }
+        vm.submit(a.type, RecordSource.APP)
     }
 
     Column(
@@ -103,6 +119,69 @@ fun HomeScreen(vm: RecorderViewModel, onOpenTimeline: () -> Unit, initialFormula
             onConfirm = { ml -> vm.submitFormula(ml, RecordSource.APP); showFormula = false }
         )
     }
+
+    pendingSideId?.let { id ->
+        OptionalChoiceSheet(
+            prompt = "这一段是哪一侧？",
+            options = BreastSide.values().toList(),
+            titleOf = Format::side,
+            onPick = { side -> vm.setBreastSide(side, id); pendingSideId = null },
+            onDismiss = { pendingSideId = null }
+        )
+    }
+
+    pendingDiaperId?.let { id ->
+        OptionalChoiceSheet(
+            prompt = "这一次是？",
+            options = DiaperKind.values().toList(),
+            titleOf = Format::diaper,
+            onPick = { kind -> vm.setDiaperKind(kind, id); pendingDiaperId = null },
+            onDismiss = { pendingDiaperId = null }
+        )
+    }
+}
+
+/**
+ * "先落库、再追问"的一次点选（PRD §3.1 规则 5）：母乳左右侧与排便小便/大便共用这一形态。
+ * 每一项都可选，也可整块跳过（点跳过或下滑关闭）—— 跳过后字段为空，记录本身已经落库不受影响，
+ * 事后可在时间轴编辑里补填（§3.3 规则 3）。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <T> OptionalChoiceSheet(
+    prompt: String,
+    options: List<T>,
+    titleOf: (T) -> String,
+    onPick: (T?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Warm.Elevated) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(prompt, style = MaterialTheme.typography.titleLarge, color = Warm.Text1)
+            Text("可跳过，之后在时间轴里补填", style = MaterialTheme.typography.labelSmall, color = Warm.Text2)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                options.forEach { option ->
+                    Surface(
+                        onClick = { onPick(option) },
+                        shape = RoundedCornerShape(14.dp),
+                        color = Warm.PrimarySoft,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
+                            Text(titleOf(option), color = Warm.PrimaryStrong,
+                                fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                    }
+                }
+            }
+            TextButton(onClick = { onPick(null) }, modifier = Modifier.fillMaxWidth()) {
+                Text("跳过", color = Warm.Text2)
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -142,16 +221,17 @@ fun StatusCard(vm: RecorderViewModel) {
         }
 
         Spacer(Modifier.height(4.dp))
-        // §3.2 规则3/6：五项"距上次"（母乳带时长、奶粉带毫升），超宽自动换行
+        // §3.2 规则3/6：五项"距上次"（母乳带侧别与时长、奶粉带毫升、排便带小便/大便），超宽自动换行
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             vm.lastBreast()?.let { StatusChip(Format.breastChip(it, vm.now)) }
             vm.lastFormula()?.let { StatusChip(Format.formulaChip(it, vm.now)) }
-            listOf(EventType.SLEEP, EventType.MEDICINE, EventType.POOP).forEach { t ->
+            listOf(EventType.SLEEP, EventType.MEDICINE).forEach { t ->
                 vm.lastOccurrence(t)?.let { StatusChip("${Format.emoji(t)} ${Format.relative(it, vm.now)}") }
             }
+            vm.lastPoop()?.let { StatusChip(Format.poopChip(it, vm.now)) }
         }
     }
 }
@@ -276,7 +356,7 @@ fun TimelineRow(e: BabyEvent, now: Long) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SquircleIcon(e.type, 40) {
-                Text(if (formula) "🍼" else Format.emoji(e.type), fontSize = 16.sp)
+                Text(Format.icon(e), fontSize = 16.sp)
             }
             Column(Modifier.weight(1f)) {
                 Text(

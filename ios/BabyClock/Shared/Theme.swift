@@ -55,6 +55,27 @@ struct SquircleIcon<Content: View>: View {
     }
 }
 
+/// 事件图标（iOS squircle 风格矢量图形）。
+/// 放在 Theme 而非 HomeView：Widget target 只编译 Shared/ + Theme，需要在这里取到它。
+struct EventGlyph: View {
+    let type: EventType
+    let size: CGFloat
+    var body: some View {
+        Image(systemName: symbol)
+            .resizable().scaledToFit()
+            .frame(width: size, height: size)
+            .foregroundStyle(Warm.fill(type))
+    }
+    private var symbol: String {
+        switch type {
+        case .feed: return "cup.and.saucer.fill"
+        case .sleep: return "moon.zzz.fill"
+        case .medicine: return "cross.case.fill"
+        case .poop: return "leaf.fill"
+        }
+    }
+}
+
 /// 把 TimeInterval 格式化为 HH:MM:SS
 func formatDuration(_ t: TimeInterval) -> String {
     let s = Int(t)

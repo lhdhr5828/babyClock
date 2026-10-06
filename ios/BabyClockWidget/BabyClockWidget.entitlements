@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 与主 App 同组，锁屏小组件才能读写同一个 SQLite 文件（AC-21 的前提）。
+	     值来自构建设置 BC_APP_GROUP，两个 target 必须解析到同一个字符串。 -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>$(BC_APP_GROUP)</string>
+	</array>
+</dict>
+</plist>

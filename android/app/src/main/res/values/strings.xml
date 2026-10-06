@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">宝宝记录</string>
     <string name="widget_name">宝宝记录</string>
-    <string name="widget_desc">桌面一键记录吃奶/睡觉/吃药/排便</string>
+    <string name="widget_desc">一键记录母乳/睡觉/吃药/排便；中尺寸可直点奶粉毫升档位</string>
 
     <string name="sc_sleep_short">睡觉</string>
     <string name="sc_sleep_long">记录宝宝睡觉</string>

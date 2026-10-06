@@ -1,6 +1,7 @@
 package com.babyclock
 
 import com.babyclock.data.*
+import com.babyclock.ui.Format
 import org.junit.Assert.*
 import org.junit.Test
 import java.util.Calendar
@@ -193,5 +194,81 @@ class EventStateMachineTest {
         }
         // I1：至多一条 ongoing
         assertTrue(all.count { it.ongoing } <= 1)
+    }
+
+    // AC-7 / §3.3 异常表：编辑后结束早于开始必须被拒，且不落库
+    @Test fun updateRejectsEndBeforeStart() {
+        val (m, s) = machine()
+        m.submit(EventType.SLEEP, t0)
+        m.submit(EventType.SLEEP, t1)                       // 结束这段睡眠
+        val ended = s.allEvents(EventStateMachine.DEFAULT_BABY_ID).first()
+        val err = assertThrows(MachineException::class.java) {
+            m.update(ended.copy(startAt = t2, endAt = t1))   // t2 > t1：非法
+        }
+        assertEquals(MachineError.INVALID_INTERVAL, err.error)
+        assertEquals(t1, ended.endAt)                        // 库里仍是原值
+    }
+
+    // I4 + I5：编辑奶粉时 endAt 跟随 startAt；毫升非正直接拒
+    @Test fun updateKeepsFormulaZeroDuration() {
+        val (m, s) = machine()
+        val f = m.submitFormula(t0, 90)
+        val moved = m.update(f.copy(startAt = t2))
+        assertEquals(t2, moved.startAt)
+        assertEquals(moved.startAt, moved.endAt)
+        assertFalse(moved.ongoing)
+        assertThrows(MachineException::class.java) { m.update(f.copy(volumeMl = 0)) }
+        assertThrows(MachineException::class.java) { m.update(f.copy(volumeMl = null)) }
+    }
+
+    // §3.1 规则 5：补填左右侧不得把已结束的段复活成 ongoing
+    @Test fun setBreastSideDoesNotResurrectEndedSegment() {
+        val (m, s) = machine()
+        val e = m.submit(EventType.FEED, t0)
+        m.submit(EventType.FEED, t1)
+        m.setBreastSide(BreastSide.LEFT, e.id)
+        val all = s.allEvents(EventStateMachine.DEFAULT_BABY_ID)
+        assertEquals(1, all.size)
+        assertEquals(BreastSide.LEFT, all[0].breastSide)
+        assertFalse(all[0].ongoing)
+        assertEquals(t1, all[0].endAt)
+    }
+
+    // T12：排便类别补填 —— 与母乳侧别同一口径（只改这一个字段，跳过保持 null）
+    @Test fun setDiaperKindOnlyTouchesThatField() {
+        val (m, s) = machine()
+        val e = m.submit(EventType.POOP, t0)
+        m.submit(EventType.SLEEP, t1)                          // 睡眠段进行中，排便不该牵连它
+        m.setDiaperKind(DiaperKind.PEE, e.id)
+        val all = s.allEvents(EventStateMachine.DEFAULT_BABY_ID)
+        val stored = all.first { it.id == e.id }
+        assertEquals(DiaperKind.PEE, stored.diaperKind)
+        assertEquals("小便", Format.label(stored))
+        assertFalse(stored.ongoing)
+        assertNotNull(m.ongoing())
+
+        m.setDiaperKind(null, e.id)                            // 跳过 = 回到未区分
+        val cleared = s.allEvents(EventStateMachine.DEFAULT_BABY_ID).first { it.id == e.id }
+        assertNull(cleared.diaperKind)
+        assertEquals("排便", Format.label(cleared))             // 未区分时标题不猜
+    }
+
+    // §3.2 简述文案：补填过才在标题里带侧别
+    @Test fun breastSideShowsInLabelOnlyAfterFilled() {
+        val (m, s) = machine()
+        val open = m.submit(EventType.FEED, t0)
+        assertEquals("母乳", Format.label(open))                // 进行中的段还没问
+        val ended = m.submit(EventType.FEED, t1)
+        m.setBreastSide(BreastSide.LEFT, ended.id)
+        val stored = s.allEvents(EventStateMachine.DEFAULT_BABY_ID).first { it.id == ended.id }
+        assertEquals("母乳 左侧", Format.label(stored))
+    }
+
+    // §3.3 规则 4：删除真的少一条记录
+    @Test fun deleteRemovesRecord() {
+        val (m, s) = machine()
+        val e = m.submit(EventType.POOP, t0)
+        m.delete(e)
+        assertTrue(s.allEvents(EventStateMachine.DEFAULT_BABY_ID).isEmpty())
     }
 }

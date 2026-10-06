@@ -1,6 +1,8 @@
 # 技术方案与架构 · babyClock
 
-**版本**：v1.1 ｜ **日期**：2026-09-11 ｜ 关联：`docs/PRD.md`（v1.1）、`shared/state-machine.md`、`design/design-tokens.json`
+**版本**：v1.2 ｜ **日期**：2026-10-06 ｜ 关联：`docs/PRD.md`（v1.2）、`shared/state-machine.md`、`design/design-tokens.json`
+
+> **v1.2 修订要点**：事件表新增可空 `diaper_kind`（排便区分小/大便），schema v2→v3 只加列不回填；简述区与时间轴的子类别文案/图标统一由模型层派生（iOS `BabyEvent.label` / Android `Format.label`+`Format.icon`），因为 iOS 的 Widget target 只编译 `Shared/` + `Theme.swift`，取不到 View 文件里的扩展。
 
 > **v1.1 修订要点**：① 事件表新增 `feed_method` / `volume_ml` / `breast_side`（母乳记时长、奶粉记毫升）；② 新增 `submitFormula` 零时长段入口；③ **修正 Android 快捷入口方案**——锁屏小组件与自定义语音在 Android 上均不可行，改押锁屏常驻通知；④ 修正 iOS 存储选型记录错误（实际为系统 `SQLite3`，非 GRDB）；⑤ 新增 24h 活动带可视化选型与 iOS 文件保护等级要求。
 
@@ -65,6 +67,7 @@ CREATE TABLE event (
   feed_method TEXT,              -- BREAST|FORMULA；仅 type=FEED 非空     [v1.1 新增]
   volume_ml   INTEGER,           -- 毫升；仅 feed_method=FORMULA 必填    [v1.1 新增]
   breast_side TEXT,              -- LEFT|RIGHT|BOTH；仅 BREAST，可空     [v1.1 新增]
+  diaper_kind TEXT,              -- PEE|POO|MIXED；仅 type=POOP，可空    [v1.2 新增]
   start_at    INTEGER NOT NULL,  -- epoch ms; INSTANT 时即发生时刻
   end_at      INTEGER,           -- epoch ms; null=进行中(仅INTERVAL); INSTANT恒为null
                                  -- FORMULA: end_at == start_at（零时长）
@@ -97,6 +100,8 @@ CREATE INDEX idx_event_feed_method ON event(baby_id, type, feed_method);  -- 奶
 | iOS | 手写 `PRAGMA user_version` 判断 + `ALTER TABLE` | 迁移前**先复制一份 DB 文件做备份**（同容器内 `.bak`），迁移失败时不静默降级、不删原库 |
 
 **历史数据回填规则**：v1.0 的 `type=FEED` 记录 `feed_method` 为空。迁移时统一回填为 `BREAST`（v1.0 的 FEED 均为计时段，语义等价母乳），`volume_ml` 留空。回填后用户在时间轴可手动改为奶粉并补毫升数。
+
+**v1.2（`version = 2 → 3`）**：只 `ALTER TABLE event ADD COLUMN diaper_kind TEXT`，**不回填**——猜出来的大小便比空着更糟，UI 对 NULL 显示"排便"。同样禁止破坏性迁移；两端各自补了一条真库迁移单测（造 v2 库 → 打开 → 断言行数与字段不变、新版本号为 3）。
 
 ### 2.3 核心状态机（两端必须行为一致）
 
@@ -287,7 +292,7 @@ RecordActionReceiver (BroadcastReceiver)
 
 | 层 | 覆盖 | 说明 |
 |---|------|------|
-| 状态机单测 | `shared/state-machine.md` 的 **T1–T11** | 两端各一套，**断言逐条一致**。T1–T6 为 v1.0 既有用例（不变），T7–T11 为 v1.1 奶粉新增 |
+| 状态机单测 | `shared/state-machine.md` 的 **T1–T12** | 两端各一套，**断言逐条一致**。T1–T6 为 v1.0 既有用例（不变），T7–T11 为 v1.1 奶粉新增，T12 为 v1.2 排便类别 |
 | 不变量单测 | I1–I5 | 随机操作序列 fuzz，断言不变量恒成立 |
 | Schema 迁移测试 | Android `MigrationTestHelper`；iOS 迁移前后对比 | 写入 v1 数据 → 迁移 → 断言记录数不变、`feed_method` 正确回填为 BREAST |
 | DB 约束测试 | CHECK 约束 | 尝试写入 volume_ml=null 的 FORMULA、非 FORMULA 的零时长段，断言被拒 |

@@ -3,12 +3,16 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var recorder: Recorder
     @State private var showFormula = false
+    /// 刚结束的那段母乳 id：非空即等待补填左右侧（§3.1 规则 5，可跳过）
+    @State private var pendingSideId: String?
+    /// 刚落库的那条排便 id：非空即等待补填小便/大便（同一手法，同样可跳过）
+    @State private var pendingDiaperId: String?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    StatusCard(recorder: recorder)
+                    StatusCard()
                     Text("轻点记录")
                         .font(.subheadline).fontWeight(.bold)
                         .foregroundStyle(Warm.text2)
@@ -20,7 +24,7 @@ struct HomeView: View {
                             }
                         }
                     }
-                    TodayPreview(recorder: recorder)
+                    TodayPreview()
                 }
                 .padding(20)
             }
@@ -34,16 +38,55 @@ struct HomeView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
             }
+            .sheet(isPresented: pendingSideBinding) {
+                BreastSidePanel { side in
+                    if let id = pendingSideId { recorder.setBreastSide(side, id: id) }
+                    pendingSideId = nil
+                }
+                .presentationDetents([.height(220)])
+                .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: pendingDiaperBinding) {
+                DiaperKindPanel { kind in
+                    if let id = pendingDiaperId { recorder.setDiaperKind(kind, id: id) }
+                    pendingDiaperId = nil
+                }
+                .presentationDetents([.height(220)])
+                .presentationDragIndicator(.visible)
+            }
         }
     }
 
-    /// 点击动作：奶粉弹毫升面板（不直接写库），其余走状态机（母乳/睡觉 toggle，吃药/排便瞬时）。
+    private var pendingSideBinding: Binding<Bool> {
+        Binding(get: { pendingSideId != nil },
+               set: { if !$0 { pendingSideId = nil } })
+    }
+
+    private var pendingDiaperBinding: Binding<Bool> {
+        Binding(get: { pendingDiaperId != nil },
+               set: { if !$0 { pendingDiaperId = nil } })
+    }
+
+    /// 点击动作：奶粉弹毫升面板（不直接写库），排便弹大小便面板（先写库再问），
+    /// 其余走状态机（母乳/睡觉 toggle，吃药瞬时）。
     private func click(_ action: HomeAction) {
         if action == .formula {
             showFormula = true
-        } else {
-            recorder.submit(action.type, source: .app)
+            return
         }
+        // 这次点击结束了一段母乳 → 段已落库，随后追问一次左右侧（可跳过，不阻断已完成的记录）
+        if action == .breast, let o = recorder.ongoing, o.type == .feed {
+            recorder.submit(.feed, source: .app)
+            pendingSideId = o.id
+            return
+        }
+        // 排便先落库再追问：一键仍然记录成功，"这一次是"是可选的补充信息。
+        // 下滑关闭面板 = 跳过，diaperKind 保持 nil，显示回"排便"。
+        if action == .poop {
+            pendingDiaperId = recorder.submit(.poop, source: .app)?.id
+            return
+        }
+        recorder.submit(action.type, source: .app)
     }
 
     /// 该动作是否处于"进行中"高亮态。进行中的吃奶段必为母乳（奶粉永不 ongoing）。
@@ -57,9 +100,88 @@ struct HomeView: View {
     }
 }
 
+/// 母乳左右侧一次点选（PRD §3.1 规则 5）。三项均可选，也可整块跳过 —— 跳过后字段为空，
+/// 记录本身已经落库不受影响，事后可在时间轴编辑里补填（§3.3 规则 3）。
+struct BreastSidePanel: View {
+    let onPick: (BreastSide?) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("这一段是哪一侧？")
+                .font(.title3).fontWeight(.heavy).foregroundStyle(Warm.text1)
+            Text("可跳过，之后在时间轴里补填")
+                .font(.footnote).foregroundStyle(Warm.text2)
+            HStack(spacing: 8) {
+                ForEach(BreastSide.allCases, id: \.self) { side in
+                    ChoiceTile(side.title) { onPick(side) }
+                }
+            }
+            Button { onPick(nil) } label: {
+                Text("跳过")
+                    .font(.subheadline).fontWeight(.semibold).foregroundStyle(Warm.text2)
+                    .frame(maxWidth: .infinity).padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(20)
+        .background(Warm.elevated.ignoresSafeArea())
+    }
+}
+
+/// 排便的小便/大便一次点选（与母乳左右侧同一口径：先落库、再追问、可跳过、时间轴可补填）。
+/// 不追问的快捷入口（小组件 / 通知 / Siri）留下的记录字段为空，显示时退回"排便"。
+struct DiaperKindPanel: View {
+    let onPick: (DiaperKind?) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("这一次是？")
+                .font(.title3).fontWeight(.heavy).foregroundStyle(Warm.text1)
+            Text("可跳过，之后在时间轴里补填")
+                .font(.footnote).foregroundStyle(Warm.text2)
+            HStack(spacing: 8) {
+                ForEach(DiaperKind.allCases, id: \.self) { k in
+                    ChoiceTile(k.title) { onPick(k) }
+                }
+            }
+            Button { onPick(nil) } label: {
+                Text("跳过")
+                    .font(.subheadline).fontWeight(.semibold).foregroundStyle(Warm.text2)
+                    .frame(maxWidth: .infinity).padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(20)
+        .background(Warm.elevated.ignoresSafeArea())
+    }
+}
+
+/// 追问面板里的档位按钮（左右侧 / 大小便两处共用同一形态）。
+private struct ChoiceTile: View {
+    let title: String
+    let onTap: () -> Void
+
+    init(_ title: String, onTap: @escaping () -> Void) {
+        self.title = title
+        self.onTap = onTap
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            Text(title)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Warm.primaryStrong)
+                .frame(maxWidth: .infinity).padding(.vertical, 16)
+                .background(Warm.primarySoft)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 /// 当前状态卡：进行中事件 + 实时走秒 + 突出"距上次喂奶"(§3.2 规则5) + 五项"距上次"胶囊(母乳/奶粉拆分，规则3/6)
 struct StatusCard: View {
-    @ObservedObject var recorder: Recorder
+    @EnvironmentObject var recorder: Recorder
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let o = recorder.ongoing {
@@ -83,22 +205,23 @@ struct StatusCard: View {
                     .font(.footnote).foregroundStyle(.white.opacity(0.9))
             }
             // §3.2 规则5：突出"距上次喂奶"（母乳/奶粉更近的一次），字号高于下方五项；仅客观事实、无判断性文案
-            if let feed = [recorder.lastBreast(), recorder.lastFormula()]
-                .compactMap { $0 }.max(by: { $0.startAt < $1.startAt }) {
+            if let feed = [recorder.lastBreast(), recorder.lastFormula()].compactMap({ $0 })
+                .max(by: { $0.startAt < $1.startAt }) {
                 Text(feedHighlightText(feed, now: recorder.now))
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(.white)
             }
 
-            // §3.2 规则3/6：五项"距上次"（母乳带时长、奶粉带毫升），超宽自动换行
+            // §3.2 规则3/6：五项"距上次"（母乳带侧别与时长、奶粉带毫升、排便带小便/大便），超宽自动换行
             FlowLayout(spacing: 8) {
                 if let b = recorder.lastBreast() { chip(breastChipText(b, now: recorder.now)) }
                 if let f = recorder.lastFormula() { chip(formulaChipText(f, now: recorder.now)) }
-                ForEach([EventType.sleep, .medicine, .poop], id: \.self) { t in
+                ForEach([EventType.sleep, .medicine], id: \.self) { t in
                     if let last = recorder.lastOccurrence(of: t) {
-                        chip("\(emoji(t)) \(relativeTimeString(last, now: recorder.now))")
+                        chip("\(eventEmoji(t)) \(relativeTimeString(last, now: recorder.now))")
                     }
                 }
+                if let p = recorder.lastPoop() { chip(poopChipText(p, now: recorder.now)) }
             }
             .padding(.top, 6)
         }
@@ -117,9 +240,11 @@ struct StatusCard: View {
             .padding(.horizontal, 10).padding(.vertical, 5)
             .background(.white.opacity(0.18), in: Capsule())
     }
-    private func emoji(_ t: EventType) -> String {
-        switch t { case .feed: "🍼"; case .sleep: "😴"; case .medicine: "💊"; case .poop: "🧷" }
-    }
+}
+
+/// 状态卡胶囊用的类型图标（对齐 Android Format.emoji）。
+private func eventEmoji(_ t: EventType) -> String {
+    switch t { case .feed: "🍼"; case .sleep: "😴"; case .medicine: "💊"; case .poop: "🧷" }
 }
 
 // MARK: - §3.2 状态卡文案（母乳/奶粉拆分 + 距上次喂奶突出项）
@@ -127,17 +252,22 @@ struct StatusCard: View {
 /// 规则5：突出"距上次喂奶"（取母乳/奶粉更近的一次）。仅陈述客观事实，禁止"该喂奶了/间隔过长"等判断性文案（§3.4 合规红线）。
 func feedHighlightText(_ e: BabyEvent, now: Date) -> String {
     let rel = relativeTimeString(e.startAt, now: now)
-    return e.isFormula ? "喂奶 · \(rel) · 奶粉 \(e.volumeMl ?? 0)ml" : "喂奶 · \(rel) · 母乳"
+    return e.isFormula ? "喂奶 · \(rel) · 奶粉 \(e.volumeMl ?? 0)ml" : "喂奶 · \(rel) · \(e.label)"
 }
 
-/// 规则3/6：母乳 chip，带时长。
+/// 规则3/6：母乳 chip，带左右侧（未补填则不带）与时长。
 func breastChipText(_ e: BabyEvent, now: Date) -> String {
-    "母乳 \(humanDuration(e.duration(now: now))) · \(relativeTimeString(e.startAt, now: now))"
+    "\(e.label) \(humanDuration(e.duration(now: now))) · \(relativeTimeString(e.startAt, now: now))"
 }
 
 /// 规则3/6：奶粉 chip，带毫升。
 func formulaChipText(_ e: BabyEvent, now: Date) -> String {
     "奶粉 \(e.volumeMl ?? 0)ml · \(relativeTimeString(e.startAt, now: now))"
+}
+
+/// 排便 chip：label 已带"小便/大便/大小便"，未补填（快捷入口或跳过）时 label 回到"排便"。
+func poopChipText(_ e: BabyEvent, now: Date) -> String {
+    "\(e.diaperKind?.emoji ?? eventEmoji(.poop)) \(e.label) · \(relativeTimeString(e.startAt, now: now))"
 }
 
 /// 简单流式布局（iOS 16 Layout 协议）：子视图按内容宽度从左到右排列，超出容器宽度则换行。
@@ -384,26 +514,10 @@ struct TodayPreview: View {
     }
 }
 
-/// 事件图标（iOS squircle 风格矢量图形）
-struct EventGlyph: View {
-    let type: EventType
-    let size: CGFloat
-    var body: some View {
-        Image(systemName: symbol)
-            .resizable().scaledToFit()
-            .frame(width: size, height: size)
-            .foregroundStyle(Warm.fill(type))
-    }
-    private var symbol: String {
-        switch type {
-        case .feed: return "cup.and.saucer.fill"
-        case .sleep: return "moon.zzz.fill"
-        case .medicine: return "cross.case.fill"
-        case .poop: return "leaf.fill"
-        }
-    }
-}
+/// 事件图标定义在 Shared/Theme.swift：Widget target 也要用它。
 
-#Preview {
-    HomeView().environmentObject(Recorder(store: InMemoryEventStore()))
+struct HomeView_Previews: PreviewProvider {
+    static var previews: some View {
+        HomeView().environmentObject(Recorder(store: InMemoryEventStore()))
+    }
 }

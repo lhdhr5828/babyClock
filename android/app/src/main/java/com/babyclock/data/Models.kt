@@ -20,7 +20,16 @@ enum class EventKind { INTERVAL, INSTANT }
 enum class FeedMethod { BREAST, FORMULA }
 
 /** 母乳左右侧（可选，PRD §3.0）。 */
-enum class BreastSide { LEFT, RIGHT, BOTH }
+enum class BreastSide(val title: String) { LEFT("左侧"), RIGHT("右侧"), BOTH("双侧") }
+
+/**
+ * 排便的小便/大便之分（可选，与 BreastSide 同一口径：先落库、再追问、可跳过）。
+ * null = 未区分：迁移前的历史行，以及小组件 / 锁屏通知 / Siri 这些不追问的快捷入口。
+ * 显示时退回类型名"排便"，不猜。
+ */
+enum class DiaperKind(val title: String, val emoji: String) {
+    PEE("小便", "💧"), POO("大便", "💩"), MIXED("大小便", "🧷")
+}
 
 enum class RecordSource { APP, WIDGET, VOICE, NOTIFICATION }
 
@@ -40,8 +49,13 @@ data class BabyEvent(
     // v1.1 新增：吃奶形态与属性（其余事件恒为 null）
     @ColumnInfo(name = "feed_method") val feedMethod: FeedMethod? = null,
     @ColumnInfo(name = "volume_ml") val volumeMl: Int? = null,
-    @ColumnInfo(name = "breast_side") val breastSide: BreastSide? = null
+    @ColumnInfo(name = "breast_side") val breastSide: BreastSide? = null,
+    // v1.2 新增：排便区分小便/大便（仅 POOP 有意义，其余恒为 null）
+    @ColumnInfo(name = "diaper_kind") val diaperKind: DiaperKind? = null
 ) {
+    /** 是否为奶粉记录（FEED + FORMULA 零时长段）。与 iOS BabyEvent.isFormula 一致。 */
+    val isFormula: Boolean get() = type == EventType.FEED && feedMethod == FeedMethod.FORMULA
+
     /** 已持续/总时长（进行中则到 now），单位 ms */
     fun durationMs(now: Long = System.currentTimeMillis()): Long {
         if (!type.isInterval) return 0

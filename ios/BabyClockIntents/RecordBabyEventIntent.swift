@@ -88,31 +88,69 @@ struct RecordBreastIntent: AppIntent {
 /// 并打断当前进行中的时间段（§3.0 取舍 2）。奶粉永不 ongoing。
 ///
 /// 毫升参数（§3.6 规则 2）：
-///   - 一句话已带数值（「…喝奶粉 90 毫升」）→ App Intents 直接从短语解析 \(\.volumeMl)，不再追问；
+///   - 一句话已带数值（「…喝奶粉 90 毫升」）→ App Intents 直接从短语解析 \(\.$volume)，不再追问；
 ///   - 未带数值 → 通过 requestValueDialog 追问「喝了多少毫升？」；
 ///   - 追问超时 / 用户未答 → 系统在执行 perform 前即取消，天然不产生半条记录（§3.6 异常表）。
 /// 非法值（0 / 负数）→ guard 拦下，取消且不写库，绝不落 0/null（state-machine.md submitFormula 要点 3）。
 ///
 /// 已知取舍：§3.1「> 500ml 二次确认」依赖 UI 面板，无法在 openAppWhenRun=false 的后台语音里弹确认；
 /// PRD 将 >500 定义为「允许写入」，故语音按用户口述的正值直接写入，二次确认仍只在 App 内面板生效。
+// MARK: - 毫升数实体（§3.6 规则 2）
+
+/// 快捷指令短语只能插值 AppEntity / AppEnum 类型的参数 —— 这是 App Intents 的硬性限制
+/// （Int 会被元数据导出以 "'AppEntity' and 'AppEnum' are the only allowed types" 拒绝），
+/// 而 §3.6 规则 2 要求「一句话已带数值」能直接解析，所以把毫升数包装成实体。
+/// EntityStringQuery 让 Siri 能把口述的任意数字解析成实体值，不限于常用档位。
+struct VolumeMlEntity: AppEntity, Identifiable, Hashable {
+    let id: String
+
+    static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "毫升数")
+    static var defaultQuery = VolumeMlQuery()
+
+    init(_ ml: Int) { id = String(ml) }
+
+    var ml: Int { Int(id) ?? 0 }
+    var displayRepresentation: DisplayRepresentation { DisplayRepresentation(title: "\(ml)") }
+}
+
+struct VolumeMlQuery: EntityStringQuery {
+    static var defaultResult: VolumeMlEntity? { nil }
+
+    func entities(for identifiers: [String]) async throws -> [VolumeMlEntity] {
+        identifiers.compactMap { Int($0) }.map(VolumeMlEntity.init)
+    }
+
+    /// 只取口述里的数字；解析不出正数就返回空候选，交由 requestValueDialog 追问，不猜值。
+    func entities(matching string: String) async throws -> [VolumeMlEntity] {
+        let digits = string.filter(\.isNumber)
+        guard let ml = Int(digits), ml > 0 else { return [] }
+        return [VolumeMlEntity(ml)]
+    }
+
+    func suggestedEntities() async throws -> [VolumeMlEntity] {
+        [60, 90, 120].map(VolumeMlEntity.init)
+    }
+}
+
 struct RecordFormulaIntent: AppIntent {
     static var title: LocalizedStringResource = "记录宝宝喝奶粉"
     static var description = IntentDescription("记录宝宝喝了多少毫升奶粉，仅保存在本机。")
     static var openAppWhenRun: Bool = false
 
     @Parameter(title: "毫升数", requestValueDialog: "喝了多少毫升？")
-    var volumeMl: Int
+    var volume: VolumeMlEntity
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        guard volumeMl > 0 else {
+        let ml = volume.ml
+        guard ml > 0 else {
             return .result(dialog: IntentDialog(stringLiteral: "毫升数无效，已取消"))
         }
         do {
             let machine = try VoiceRecorder.makeMachine()
-            try machine.submitFormula(now: Date(), volumeMl: volumeMl, source: .voice)
+            try machine.submitFormula(now: Date(), volumeMl: ml, source: .voice)
             VoiceRecorder.refreshWidgets()
-            return .result(dialog: IntentDialog(stringLiteral: "已记录奶粉 \(volumeMl) 毫升"))
+            return .result(dialog: IntentDialog(stringLiteral: "已记录奶粉 \(ml) 毫升"))
         } catch {
             return .result(dialog: IntentDialog(stringLiteral: VoiceRecorder.saveFailedDialog))
         }
@@ -161,31 +199,13 @@ struct RecordPoopIntent: AppIntent {
     }
 }
 
-// MARK: - 事件类型枚举（小组件复用，勿删）
-
-/// 暴露给系统的四类事件短语。
-/// ⚠️ BabyClockWidget 的 QuickRecordIntent 依赖此枚举（`typeParam: BabyEventTypeAppEnum`），
-/// 必须保留在本文件（widget target 从此处解析），否则小组件无法编译。
-enum BabyEventTypeAppEnum: String, AppEnum {
-    case feed, sleep, medicine, poop
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "事件类型"
-    static var caseDisplayRepresentations: [BabyEventTypeAppEnum: DisplayRepresentation] = [
-        .feed: "吃奶", .sleep: "睡觉", .medicine: "吃药", .poop: "排便"
-    ]
-    var domain: EventType {
-        switch self {
-        case .feed: return .feed
-        case .sleep: return .sleep
-        case .medicine: return .medicine
-        case .poop: return .poop
-        }
-    }
-}
-
 // MARK: - 快捷指令短语（iOS 17+ 自动暴露，§3.6 规则 7）
+//
+// 事件类型枚举 BabyEventTypeAppEnum 已移至 BabyClock/Shared/AppEnums.swift：
+// Widget target 需要它，但不该连带编译本文件的 AppShortcutsProvider。
 
 /// 在「快捷指令」App / Siri 中可发现的短语。每条短语均含 \(.applicationName)（发现性最稳），
-/// 奶粉短语另含 \(\.volumeMl) 参数以支持「一句话带数值直接解析」。
+/// 奶粉短语另含 \(\.$volume) 参数以支持「一句话带数值直接解析」。
 /// 用户仍可在系统「快捷指令」App 中自定义触发短语（§3.6 规则 6）。
 struct BabyClockShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
@@ -210,8 +230,8 @@ struct BabyClockShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: RecordFormulaIntent(),
             phrases: [
-                "用\(.applicationName)记录宝宝喝奶粉\(\.volumeMl)毫升",
-                "用\(.applicationName)记录宝宝喝了\(\.volumeMl)毫升奶粉"
+                "用\(.applicationName)记录宝宝喝奶粉\(\.$volume)毫升",
+                "用\(.applicationName)记录宝宝喝了\(\.$volume)毫升奶粉"
             ],
             shortTitle: "记录宝宝喝奶粉",
             systemImageName: "cup.and.saucer.fill"

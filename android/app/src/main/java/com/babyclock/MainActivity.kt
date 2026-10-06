@@ -8,12 +8,20 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -113,6 +121,28 @@ fun RootScreen(openFormula: Boolean = false) {
                 1 -> TimelineScreen(vm)
                 2 -> StatsScreen(vm)
             }
+            // 写入失败必须可见（PRD §3.1 异常表）：轻量横幅，不用弹窗打断记录
+            vm.errorMessage?.let { msg ->
+                WriteFailureBanner(msg, onDismiss = vm::dismissError,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp))
+            }
         }
+    }
+}
+
+/** 校验/写入失败横幅，与 iOS WriteFailureBanner 对应。 */
+@Composable
+private fun WriteFailureBanner(message: String, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFFD33A2C))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(message, color = Color.White, style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.weight(1f))
+        TextButton(onClick = onDismiss) { Text("✕", color = Color.White.copy(alpha = .85f)) }
     }
 }

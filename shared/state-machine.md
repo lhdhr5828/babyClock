@@ -24,6 +24,10 @@ iOS（Swift）与 Android（Kotlin）各自实现，但行为必须与本规格�
 |------|------|------|------|
 | `volume_ml` | FEED/FORMULA | 是 | 毫升数，整数。UI 提供快选档位 30/60/90/120/150 + 自定义 |
 | `breast_side` | FEED/BREAST | 否 | `LEFT`/`RIGHT`/`BOTH`，可空；结束时可选一次点选，也可事后在时间轴编辑 |
+| `diaper_kind` | POOP | 否 | `PEE`/`POO`/`MIXED`，可空；点选口径与 `breast_side` 完全一致 —— 先落库、再追问、可跳过、时间轴可补填 |
+
+`breast_side` 与 `diaper_kind` 都是**可选属性**，空值的显示口径统一：不猜、不填默认值，标题退回类型名（"母乳" / "排便"）。
+不追问的快捷入口（小组件、Android 锁屏通知、iOS Siri）写出的记录恒为空，用户想区分就在首页点选或事后在时间轴编辑。
 
 ## 不变量
 
@@ -41,6 +45,7 @@ iOS（Swift）与 Android（Kotlin）各自实现，但行为必须与本规格�
 kind = kindOf(type)
 if kind == INSTANT:
     insert(type, INSTANT, start=now, end=null, ongoing=false, source)
+    if type == POOP: promptDiaperKindOptional(e)   # 小便/大便/都有，可跳过；与母乳侧别同为 UI 层追问，状态机不管
     return
 # INTERVAL
 current = findOngoing()
@@ -87,8 +92,11 @@ insert(FEED, INTERVAL, feed_method=FORMULA,
 | T9 (奶粉连续两次) | submitFormula(t0,60); submitFormula(t1,90) | 2 条独立 FORMULA 记录，各自 start==end；无 ongoing |
 | T10 (奶粉打断母乳) | submit(FEED,t0); submitFormula(t1,120) | BREAST 段 end=t1 ongoing=false；新增 FORMULA start=end=t1 volume_ml=120 |
 | T11 (I4/I5) | 任意序列 | 零时长段必为 FEED+FORMULA；FORMULA 记录必 ongoing=false 且 volume_ml 非空 |
+| T12 (排便补填) | submit(POOP,t0); setDiaperKind(PEE, 该条 id) | 仅 `diaper_kind` 变化，start/kind/ongoing 均不变；传 null 即跳过，字段保持空 |
 
 > **T7–T11 是 v1.1 新增**，两端单元测试必须同步补齐；T1–T6 断言不变（奶粉走独立入口，未触碰 `submit` 主流程）。
+> **T12 是 v1.2 新增**（排便区分小便/大便）：`setDiaperKind` 与 `setBreastSide` 同一条实现纪律 —— 按 id 重读库内当前行再改单个字段，
+> 不能拿 UI 手上写入时的快照整行回写，否则会把已结束的段复活成"进行中"，破坏 I1。
 
 ## 跨天时长拆分 splitByDay(start, end, tz)
 

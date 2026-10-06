@@ -1,9 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 尺寸（PRD §3.5 规则 5）：targetCell 3x2 让启动器默认落在中尺寸，最小 160x150dp 让单格也放得下。
+     160dp 这个下限是实测校准出来的：Pixel 启动器（1080px / 420dpi）单格宽约 176dp，
+     原先写 180dp 时单格被判定为"小于可调整下限"，小组件只能停在 2 格（272dp）以上，
+     BabyClockWidget 里 < 240dp 的小尺寸分支在这台机器上根本进不去 —— 尺寸区分形同虚设。
+     150dp 高度则是量出来的：小尺寸那套"状态 + 2×2 四键"约 145dp 是最高的，
+     RemoteViews 溢出部分会被直接裁掉（不滚动也不压缩），所以 minHeight 必须 ≥ 它。
+     ⚠️ Android 11 及以下，BabyClockWidget 的 SizeMode.Exact 会退回读这里的 minWidth 来决定分支，
+     改 minWidth 会连带改掉那些设备上的布局形态。 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="250dp"
-    android:minHeight="60dp"
-    android:targetCellWidth="4"
-    android:targetCellHeight="1"
+    android:minWidth="160dp"
+    android:minHeight="150dp"
+    android:minResizeWidth="160dp"
+    android:minResizeHeight="150dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_loading"
     android:resizeMode="horizontal|vertical"

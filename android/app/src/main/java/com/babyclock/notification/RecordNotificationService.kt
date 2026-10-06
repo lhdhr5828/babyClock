@@ -169,6 +169,9 @@ class RecordNotificationService : Service() {
             .setOngoing(true)
             .setSilent(true)
             .setOnlyAlertOnce(true)
+            // 常驻状态通知没有"何时发生"语义：不关掉的话系统会在标题后追加英文 "now"，
+            // 在中文界面上很突兀。
+            .setShowWhen(false)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)

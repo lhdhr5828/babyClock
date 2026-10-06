@@ -1,5 +1,4 @@
 import SwiftUI
-import Intents
 
 // MARK: - 检测（§3.6 规则 7 / 异常表）
 
@@ -19,11 +18,12 @@ enum SiriAvailability {
         return .unsupported
     }
 
-    /// Siri 主开关是否开启（异常表行 1「Siri 未开启」）。
-    /// ⚠️ 无公开 API 检测「锁屏时允许 Siri」这一子开关，只能检测总开关；
-    /// 锁屏权限以文案引导用户自行到「设置 > Siri 与搜索」确认。
-    static var siriEnabled: Bool {
-        INPreferences.siriStatus() == .enabled
+    /// 「Siri 未开启」（异常表行 1）无法在启动时读取：唯一的公开 API
+    /// `INPreferences.siriAuthorizationStatus()` 要求 `com.apple.developer.siri` 授权，
+    /// 缺授权时向该类发消息会直接抛 NSException 让 App 启动即崩（真机、模拟器都会）。
+    /// 因此这里不做探测，改为在引导里常驻一条中性排查提示，把「是否已开启」交给用户确认。
+    static var siriHint: String {
+        "若说指令没有响应，请到「设置 > Siri 与搜索」确认已开启 Siri，并允许锁屏时使用。"
     }
 }
 
@@ -36,7 +36,6 @@ struct SiriGuideView: View {
     @Environment(\.openURL) private var openURL
 
     private let exposure = SiriAvailability.exposure
-    private let siriOn = SiriAvailability.siriEnabled
 
     private struct Phrase: Identifiable {
         let icon: String
@@ -57,7 +56,7 @@ struct SiriGuideView: View {
             header
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    if !siriOn { siriOffBanner }
+                    siriHintCard
                     Text(intro)
                         .font(.subheadline)
                         .foregroundStyle(Warm.text2)
@@ -106,12 +105,12 @@ struct SiriGuideView: View {
         }
     }
 
-    // MARK: Siri 未开启（异常表行 1）
-    private var siriOffBanner: some View {
+    // MARK: Siri 未开启 / 锁屏禁用（异常表行 1，仅提示不探测）
+    private var siriHintCard: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
+            Image(systemName: "questionmark.circle.fill")
                 .foregroundStyle(Warm.primaryStrong)
-            Text("检测到 Siri 未开启。请前往「设置 > Siri 与搜索」打开 Siri，并允许锁屏时使用，语音记录才能生效。")
+            Text(SiriAvailability.siriHint)
                 .font(.footnote)
                 .foregroundStyle(Warm.text1)
                 .fixedSize(horizontal: false, vertical: true)
@@ -199,6 +198,8 @@ struct SiriGuideView: View {
     }
 }
 
-#Preview {
-    SiriGuideView()
+struct SiriGuideView_Previews: PreviewProvider {
+    static var previews: some View {
+        SiriGuideView()
+    }
 }

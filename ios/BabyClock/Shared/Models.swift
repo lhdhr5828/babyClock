@@ -44,10 +44,45 @@ public enum FeedMethod: String, Codable, CaseIterable, Sendable {
 }
 
 /// 母乳左右侧（可选，PRD §3.0）。
+/// 文案放在这一层而非 HomeView：Widget target 只编译 Shared/ + Theme，取不到 View 文件里的扩展。
 public enum BreastSide: String, Codable, CaseIterable, Sendable {
     case left = "LEFT"
     case right = "RIGHT"
     case both = "BOTH"
+
+    public var title: String {
+        switch self {
+        case .left: return "左侧"
+        case .right: return "右侧"
+        case .both: return "双侧"
+        }
+    }
+}
+
+/// 排便的小便/大便之分（可选，点选后可跳过；PRD §3.1 规则 5 的同款口径）。
+/// nil = 未区分：历史行（迁移只加列不填值）与小组件/通知/Siri 这类不追问的快捷入口，
+/// 显示时退回类型名"排便"，不猜。
+public enum DiaperKind: String, Codable, CaseIterable, Sendable {
+    case pee = "PEE"
+    case poo = "POO"
+    case mixed = "MIXED"
+
+    public var title: String {
+        switch self {
+        case .pee: return "小便"
+        case .poo: return "大便"
+        case .mixed: return "大小便"
+        }
+    }
+
+    /// 混合沿用排便原本的回形针符号：两个 emoji 并排在状态卡胶囊里会挤掉时间。
+    public var emoji: String {
+        switch self {
+        case .pee: return "💧"
+        case .poo: return "💩"
+        case .mixed: return "🧷"
+        }
+    }
 }
 
 /// 一条事件记录。INTERVAL: endAt==nil 表示进行中(ongoing)。INSTANT: endAt 恒为 nil, ongoing 恒为 false。
@@ -66,15 +101,22 @@ public struct BabyEvent: Codable, Identifiable, Sendable, Equatable {
     public var feedMethod: FeedMethod? = nil
     public var volumeMl: Int? = nil
     public var breastSide: BreastSide? = nil
+    // v1.2 新增：排便区分小便/大便（仅 POOP 有意义，其余恒为 nil）。
+    public var diaperKind: DiaperKind? = nil
 
     public var kind: EventType.Kind { type.kind }
 
     /// 是否为奶粉记录（FEED + FORMULA 零时长段）。
     public var isFormula: Bool { type == .feed && feedMethod == .formula }
 
-    /// 记录标题：母乳/奶粉区分显示，其余用类型名（对齐 Android Format.label）。
+    /// 记录标题：母乳带侧别、排便带小便/大便，其余用类型名（对齐 Android Format.label）。
+    /// 侧别只在已补填时才出现 —— 进行中的母乳段还没问，跳过追问的历史段也没有。
     public var label: String {
-        if let fm = feedMethod { return fm == .formula ? "奶粉" : "母乳" }
+        if let fm = feedMethod {
+            if fm == .formula { return "奶粉" }
+            return breastSide.map { "母乳 \($0.title)" } ?? "母乳"
+        }
+        if type == .poop, let d = diaperKind { return d.title }
         return type.title
     }
 

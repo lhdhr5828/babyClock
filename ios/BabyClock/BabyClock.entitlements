@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 主 App 与 Widget / App Intent 通过同一 App Group 容器共享 SQLite 文件（ARCH §4）。
+	     值来自构建设置 BC_APP_GROUP（工程级默认 group.com.babyclock）：真机用另一个 Apple ID
+	     的团队签名时，该标识可能已被首个团队占用，命令行覆盖 BC_APP_GROUP 即可，
+	     不必改动仓库里的默认值。须与 Info.plist 的 BCAppGroup / SQLiteStore.appGroupId 一致。 -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>$(BC_APP_GROUP)</string>
+	</array>
+</dict>
+</plist>
