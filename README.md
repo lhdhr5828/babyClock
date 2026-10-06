@@ -145,15 +145,19 @@ xcodebuild -project ios/BabyClock.xcodeproj -scheme BabyClock \
 - Android `androidx.appfunctions` 智能体接入（V1.2 待评估，**需先核实 minSdk 与可用范围**）
 - 多照护者数据同步：**暂不做**，与纯离线红线冲突（见 PRD §8 风险表）
 
-## 仓库卫生（需处理）
+## 发布签名与本机构建
 
-以下文件当前**已被 git 跟踪**，其中含签名机密，应尽快从索引中移除并轮换：
+release 签名不在仓库里， clone 后需要自备两份文件（都已被 `.gitignore` 挡住，**不要提交、不要 `git add -f`**）：
 
-| 路径 | 问题 |
+| 文件 | 内容 |
 |------|------|
-| `android/keystore.properties` | 发布签名的 keystore 密码与别名，明文入库 |
-| `android/keystore/babyclock-release.jks` | 签名密钥本体 |
-| `android/local.properties` | 本机 SDK 绝对路径，因人而异，不该入库 |
-| `android/**/build/`（含 `build/reports/…`） | 构建产物与测试报告入库 |
+| `android/keystore.properties` | `storeFile` / `storePassword` / `keyAlias` / `keyPassword` |
+| `android/keystore/*.jks` | 签名密钥本体 |
 
-建议：新增根 `.gitignore`（`build/`、`local.properties`、`keystore.properties`、`keystore/`、`.DS_Store`），执行 `git rm --cached` 让它们脱离跟踪，并在**确认密钥未泄露到不可控范围前轮换 keystore**。已入库的历史提交含同一份密钥，若仓库曾推送到任何远端，仅靠后续删除无法撤回 —— 需要单独评估是否重写历史。
+`app/build.gradle.kts` 对这两份文件做了存在性判断：**缺失时 debug 照常构建，release 退化为未签名包**，所以没配密钥也不会 clone 完就构建失败。
+
+> 2026-10-06 起改用新密钥（`babyclock-release-v2.jks`），此前那把已作废 —— 它曾随公开仓库入库。口令只存在于本机，请自行备份到密码管理器；**丢了这份 .jks 和口令，就无法再签出可覆盖升级的包**。
+
+## 仓库卫生（待办）
+
+`android/**/build/` 与 `android/.gradle/` 下的构建产物、测试报告至今仍在版本控制里（约 2000 个文件）。`.gitignore` 已经覆盖这些路径，但 gitignore 对**已跟踪**文件无效，需要单独执行一次 `git rm -r --cached` 才能真正清干净。这属于纯瘦身、不涉及安全，尚未处理。
